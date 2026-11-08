@@ -10,12 +10,13 @@ import {
 } from "@/components/Table"
 import { StatusBadge } from "@/components/ui/payments/StatusBadge"
 import { merchantById, merchants } from "@/data/merchants"
-import { queryPayments } from "@/data/queries"
+import { filterPayments, parseFilters, queryPayments } from "@/data/queries"
 import { PaymentFilters, PaymentStatus } from "@/data/types"
+import { DEFAULT_EXPORT_COLUMNS, EXPORT_COLUMNS } from "@/lib/csv"
 import { formatDate } from "@/lib/dates"
 import { formatMoney } from "@/lib/money"
-import { Download } from "lucide-react"
 import Link from "next/link"
+import { ExportDialog } from "./export-dialog"
 import { PaymentsFilterBar } from "./filter-bar"
 
 const STATUSES: (PaymentStatus | "all")[] = [
@@ -65,15 +66,15 @@ export default async function PaymentsPage({
             search: filters.search ?? "",
           }}
         />
-        <Button variant="secondary" className="w-full gap-2 py-1.5 sm:w-fit" asChild>
-          <a href={`/api/payments/export?${query.toString()}`}>
-            <Download
-              className="-ml-0.5 size-4 shrink-0 text-gray-400 dark:text-gray-600"
-              aria-hidden="true"
-            />
-            Export
-          </a>
-        </Button>
+        <ExportDialog
+          query={query.toString()}
+          columns={EXPORT_COLUMNS}
+          defaultColumns={DEFAULT_EXPORT_COLUMNS}
+          // Counted by the same builder the export route uses, so the number
+          // shown is the number of rows in the file.
+          currentCount={filterPayments(parseFilters(query)).length}
+          allCount={filterPayments(parseFilters(new URLSearchParams())).length}
+        />
       </div>
 
       <TableRoot className="border-t border-gray-200 dark:border-gray-800">
@@ -142,8 +143,17 @@ export default async function PaymentsPage({
           {total.toLocaleString()} payments · page {page} of {pageCount}
         </p>
         <div className="flex gap-2">
-          <Button variant="secondary" className="py-1.5" disabled={page <= 1} asChild={page > 1}>
-            {page > 1 ? <Link href={pageHref(page - 1)}>Previous</Link> : <span>Previous</span>}
+          <Button
+            variant="secondary"
+            className="py-1.5"
+            disabled={page <= 1}
+            asChild={page > 1}
+          >
+            {page > 1 ? (
+              <Link href={pageHref(page - 1)}>Previous</Link>
+            ) : (
+              <span>Previous</span>
+            )}
           </Button>
           <Button
             variant="secondary"
@@ -151,7 +161,11 @@ export default async function PaymentsPage({
             disabled={page >= pageCount}
             asChild={page < pageCount}
           >
-            {page < pageCount ? <Link href={pageHref(page + 1)}>Next</Link> : <span>Next</span>}
+            {page < pageCount ? (
+              <Link href={pageHref(page + 1)}>Next</Link>
+            ) : (
+              <span>Next</span>
+            )}
           </Button>
         </div>
       </div>
